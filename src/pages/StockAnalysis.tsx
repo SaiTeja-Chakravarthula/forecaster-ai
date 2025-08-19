@@ -1,28 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, TrendingUp, TrendingDown, Activity, DollarSign } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TrendingUp, TrendingDown, Activity, DollarSign, BarChart3, Users, Calendar } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { StockSearch } from "@/components/StockSearch";
+import { getStockQuote, getStockHistory, type StockQuote, type HistoricalData } from "@/lib/finance";
+import { useToast } from "@/components/ui/use-toast";
 
 const StockAnalysis = () => {
-  const [symbol, setSymbol] = useState("");
-  
-  // Mock data for demonstration
-  const mockData = {
-    symbol: "AAPL",
-    price: 175.43,
-    change: 2.15,
-    changePercent: 1.24,
-    volume: "45.2M",
-    marketCap: "2.8T",
-    pe: 28.5,
-    dividend: 0.94
+  const [selectedSymbol, setSelectedSymbol] = useState("");
+  const [stockData, setStockData] = useState<StockQuote | null>(null);
+  const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleSymbolSelect = async (symbol: string, name: string) => {
+    setSelectedSymbol(symbol);
+    setIsLoading(true);
+    
+    try {
+      const [quote, history] = await Promise.all([
+        getStockQuote(symbol),
+        getStockHistory(symbol, 'daily')
+      ]);
+      
+      setStockData(quote);
+      setHistoricalData(history.slice(-30)); // Last 30 days
+      
+      toast({
+        title: "Data Updated",
+        description: `Successfully loaded data for ${symbol}`,
+      });
+    } catch (error) {
+      console.error('Error fetching stock data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch stock data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSearch = () => {
-    // Search functionality will be implemented later
-    console.log("Searching for:", symbol);
+  // Load default symbol on mount
+  useEffect(() => {
+    handleSymbolSelect('AAPL', 'Apple Inc.');
+  }, []);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(price);
+  };
+
+  const formatVolume = (volume: number) => {
+    if (volume >= 1e9) return `${(volume / 1e9).toFixed(1)}B`;
+    if (volume >= 1e6) return `${(volume / 1e6).toFixed(1)}M`;
+    if (volume >= 1e3) return `${(volume / 1e3).toFixed(1)}K`;
+    return volume.toString();
+  };
+
+  const formatMarketCap = (marketCap: string) => {
+    if (marketCap === 'N/A') return 'N/A';
+    const num = parseFloat(marketCap);
+    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(1)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
+    return `$${num.toLocaleString()}`;
   };
 
   return (
@@ -36,108 +84,221 @@ const StockAnalysis = () => {
         {/* Search Section */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              Search Stock
-            </CardTitle>
+            <CardTitle>Search & Analyze Stocks</CardTitle>
+            <CardDescription>Enter a stock symbol or company name to get real-time data and analysis</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
-              <Input
-                placeholder="Enter stock symbol (e.g., AAPL, TSLA, MSFT)"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={handleSearch}>
-                <Search className="w-4 h-4 mr-2" />
-                Analyze
-              </Button>
-            </div>
+            <StockSearch 
+              onSymbolSelect={handleSymbolSelect}
+              placeholder="Search for stocks (e.g., Apple, AAPL, Microsoft)"
+            />
           </CardContent>
         </Card>
 
         {/* Stock Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Current Price</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${mockData.price}</div>
-              <div className="flex items-center mt-1">
-                {mockData.change > 0 ? (
-                  <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+        {selectedSymbol && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Current Price
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-24" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                ) : stockData ? (
+                  <>
+                    <div className="text-2xl font-bold">{formatPrice(stockData.price)}</div>
+                    <div className="flex items-center mt-1">
+                      {stockData.change >= 0 ? (
+                        <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
+                      )}
+                      <span className={`text-sm ${stockData.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {stockData.change >= 0 ? '+' : ''}{formatPrice(stockData.change)} ({stockData.changePercent}%)
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">{stockData.name}</div>
+                  </>
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
+                  <div className="text-muted-foreground">No data available</div>
                 )}
-                <span className={`text-sm ${mockData.change > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  ${mockData.change} ({mockData.changePercent}%)
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Volume</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{mockData.volume}</div>
-              <Badge variant="secondary" className="mt-2">
-                <Activity className="w-3 h-3 mr-1" />
-                Active
-              </Badge>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Volume
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-20" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ) : stockData ? (
+                  <>
+                    <div className="text-2xl font-bold">{formatVolume(stockData.volume)}</div>
+                    <Badge variant="secondary" className="mt-2">
+                      <Activity className="w-3 h-3 mr-1" />
+                      Live
+                    </Badge>
+                  </>
+                ) : (
+                  <div className="text-muted-foreground">N/A</div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Market Cap</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{mockData.marketCap}</div>
-              <div className="text-sm text-muted-foreground mt-1">Large Cap</div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Market Cap
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                ) : stockData ? (
+                  <>
+                    <div className="text-2xl font-bold">{formatMarketCap(stockData.marketCap)}</div>
+                    <div className="text-sm text-muted-foreground mt-1">{stockData.sector}</div>
+                  </>
+                ) : (
+                  <div className="text-muted-foreground">N/A</div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">P/E Ratio</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{mockData.pe}</div>
-              <div className="text-sm text-muted-foreground mt-1">Dividend: {mockData.dividend}%</div>
-            </CardContent>
-          </Card>
-        </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  P/E Ratio
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                ) : stockData ? (
+                  <>
+                    <div className="text-2xl font-bold">{stockData.peRatio}</div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      High: {formatPrice(stockData.high)}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-muted-foreground">N/A</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Price Chart</CardTitle>
-              <CardDescription>Historical price movement over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-center justify-center bg-muted/50 rounded">
-                <p className="text-muted-foreground">Chart will be implemented with real data</p>
-              </div>
-            </CardContent>
-          </Card>
+        {selectedSymbol && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Price Chart (30 Days)</CardTitle>
+                <CardDescription>Historical price movement over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <Skeleton className="h-64 w-full" />
+                  </div>
+                ) : historicalData.length > 0 ? (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={historicalData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="date" 
+                          tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        />
+                        <YAxis domain={['dataMin - 5', 'dataMax + 5']} />
+                        <Tooltip 
+                          labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                          formatter={(value: number) => [formatPrice(value), 'Close Price']}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="close" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 bg-muted/50 rounded flex items-center justify-center">
+                    <p className="text-muted-foreground">No chart data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Volume Analysis</CardTitle>
-              <CardDescription>Trading volume trends and patterns</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-center justify-center bg-muted/50 rounded">
-                <p className="text-muted-foreground">Volume chart will be implemented</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Volume Analysis</CardTitle>
+                <CardDescription>Trading volume trends and patterns</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <Skeleton className="h-64 w-full" />
+                  </div>
+                ) : historicalData.length > 0 ? (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={historicalData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="date" 
+                          tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        />
+                        <YAxis tickFormatter={formatVolume} />
+                        <Tooltip 
+                          labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                          formatter={(value: number) => [formatVolume(value), 'Volume']}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="volume" 
+                          stroke="hsl(var(--secondary))" 
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 bg-muted/50 rounded flex items-center justify-center">
+                    <p className="text-muted-foreground">No volume data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Technical Indicators */}
         <Card>

@@ -1,1 +1,10 @@
 project_id = "impbuojchyyjohedanzi"
+
+[functions.finance-search]
+verify_jwt = false
+
+[functions.finance-quote]
+verify_jwt = false
+
+[functions.finance-history]
+verify_jwt = false
