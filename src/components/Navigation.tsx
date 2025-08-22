@@ -1,9 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { TrendingUp, BarChart3, Activity, Bitcoin, DollarSign } from "lucide-react";
+import { TrendingUp, BarChart3, Activity, Bitcoin, DollarSign, LogOut, LogIn } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navigation = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const navItems = [
     { path: "/", label: "Home", icon: TrendingUp },
@@ -41,6 +44,32 @@ const Navigation = () => {
                 );
               })}
             </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            {user ? (
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {user.email}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={signOut}
+                  className="flex items-center space-x-1"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </Button>
+              </div>
+            ) : (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/auth" className="flex items-center space-x-1">
+                  <LogIn className="w-4 h-4" />
+                  <span>Sign In</span>
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>

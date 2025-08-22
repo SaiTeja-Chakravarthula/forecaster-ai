@@ -3,8 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./hooks/useAuth";
 import Navigation from "./components/Navigation";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
+import Auth from "./pages/Auth";
 import StockAnalysis from "./pages/StockAnalysis";
 import StockPrediction from "./pages/StockPrediction";
 import CryptoPrediction from "./pages/CryptoPrediction";
@@ -19,16 +22,35 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Navigation />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/stock-analysis" element={<StockAnalysis />} />
-          <Route path="/stock-prediction" element={<StockPrediction />} />
-          <Route path="/crypto-prediction" element={<CryptoPrediction />} />
-          <Route path="/forex-prediction" element={<ForexPrediction />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Navigation />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/stock-analysis" element={
+              <ProtectedRoute>
+                <StockAnalysis />
+              </ProtectedRoute>
+            } />
+            <Route path="/stock-prediction" element={
+              <ProtectedRoute>
+                <StockPrediction />
+              </ProtectedRoute>
+            } />
+            <Route path="/crypto-prediction" element={
+              <ProtectedRoute>
+                <CryptoPrediction />
+              </ProtectedRoute>
+            } />
+            <Route path="/forex-prediction" element={
+              <ProtectedRoute>
+                <ForexPrediction />
+              </ProtectedRoute>
+            } />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

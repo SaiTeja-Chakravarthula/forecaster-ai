@@ -2,8 +2,11 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, BarChart3, Activity, Bitcoin, DollarSign, Brain } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Home = () => {
+  const { user } = useAuth();
+  
   const features = [
     {
       icon: BarChart3,
@@ -54,12 +57,25 @@ const Home = () => {
               Harness the power of AI to analyze market sentiment, predict price movements, and make informed trading decisions across stocks, crypto, and forex markets.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" asChild className="text-lg px-8 py-6">
-                <Link to="/stock-analysis">Get Started</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="text-lg px-8 py-6">
-                <Link to="/stock-prediction">View Predictions</Link>
-              </Button>
+              {user ? (
+                <>
+                  <Button size="lg" asChild className="text-lg px-8 py-6">
+                    <Link to="/stock-analysis">Get Started</Link>
+                  </Button>
+                  <Button size="lg" variant="outline" asChild className="text-lg px-8 py-6">
+                    <Link to="/stock-prediction">View Predictions</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="lg" asChild className="text-lg px-8 py-6">
+                    <Link to="/auth">Sign Up Free</Link>
+                  </Button>
+                  <Button size="lg" variant="outline" asChild className="text-lg px-8 py-6">
+                    <Link to="/auth">Sign In</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
