@@ -12,6 +12,7 @@ const Auth = () => {
   const { user, signIn, signUp, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already authenticated
@@ -29,7 +30,7 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await signUp(email, password);
+    await signUp(email, password, username);
     setIsSubmitting(false);
   };
 
@@ -120,6 +121,17 @@ const Auth = () => {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-username">Username</Label>
+                    <Input
+                      id="signup-username"
+                      type="text"
+                      placeholder="Choose a username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input

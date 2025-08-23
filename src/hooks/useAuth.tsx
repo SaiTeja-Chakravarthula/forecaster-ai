@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, username: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
@@ -40,14 +40,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, username: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl
+        emailRedirectTo: redirectUrl,
+        data: {
+          display_name: username
+        }
       }
     });
 
@@ -57,9 +60,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: "Sign Up Error",
         description: error.message
       });
-    } else {
+    } else if (data.user) {
+      // Create profile entry
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            user_id: data.user.id,
+            display_name: username
+          }
+        ]);
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+      }
+
       toast({
-        title: "Success!",
+        title: `Welcome, ${username}! 🎉`,
         description: "Please check your email to confirm your account."
       });
     }
