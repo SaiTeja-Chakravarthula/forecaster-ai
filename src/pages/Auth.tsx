@@ -34,6 +34,12 @@ const Auth = () => {
     setIsSubmitting(false);
   };
 
+  const clearForm = () => {
+    setEmail('');
+    setPassword('');
+    setUsername('');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -55,7 +61,7 @@ const Auth = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs defaultValue="signin" className="w-full" onValueChange={clearForm}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin" className="flex items-center gap-2">
               <LogIn className="w-4 h-4" />
