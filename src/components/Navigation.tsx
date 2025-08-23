@@ -3,11 +3,13 @@ import { cn } from "@/lib/utils";
 import { TrendingUp, BarChart3, Activity, Bitcoin, DollarSign, LogOut, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { ThemeToggle } from "./ThemeToggle";
 
 const Navigation = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { profile } = useUserProfile();
 
   const navItems = [
     { path: "/", label: "Home", icon: TrendingUp },
@@ -52,7 +54,7 @@ const Navigation = () => {
             {user ? (
               <div className="flex items-center space-x-3">
                 <span className="text-sm text-muted-foreground hidden sm:inline">
-                  {user.email}
+                  {profile?.display_name || user.email}
                 </span>
                 <Button
                   variant="outline"
