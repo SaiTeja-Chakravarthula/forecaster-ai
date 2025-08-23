@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { TrendingUp, BarChart3, Activity, Bitcoin, DollarSign, LogOut, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeToggle } from "./ThemeToggle";
 
 const Navigation = () => {
   const location = useLocation();
@@ -47,6 +48,7 @@ const Navigation = () => {
           </div>
           
           <div className="flex items-center space-x-2">
+            <ThemeToggle />
             {user ? (
               <div className="flex items-center space-x-3">
                 <span className="text-sm text-muted-foreground hidden sm:inline">
